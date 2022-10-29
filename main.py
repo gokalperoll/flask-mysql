@@ -1,4 +1,4 @@
-from flask import Flask, render_template, flash
+from flask import Flask, render_template, flash,request
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
@@ -14,6 +14,23 @@ app.config['SECRET_KEY'] = "supersecretkey"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root@localhost/flask_db'
 db = SQLAlchemy(app)
 
+@app.route('/update/<int:id>',methods=['GET','POST'])
+def update(id):
+    title="Update Page"
+    form = UserForm()
+    name_to_update=Users.query.get_or_404(id)
+    if request.method == "POST":
+        name_to_update.name = request.form['name']
+        name_to_update.email = request.form['email']
+        try:
+            db.session.commit()
+            flash("User updated successfuly ! ")
+            return render_template("update.html",form=form,name_to_update=name_to_update,title=title)
+        except:
+            flash("Error ! try again. ")
+            return render_template("update.html", form=form, name_to_update=name_to_update,title=title)
+    else:
+        return render_template("update.html", form=form, name_to_update=name_to_update,title=title)
 
 def create_app():
     app = Flask(__name__)
