@@ -4,6 +4,7 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 # ADD SECRET KEY
@@ -13,6 +14,7 @@ app.config['SECRET_KEY'] = "supersecretkey"
 # NEW MYSQL DATABASE
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/flask_db'
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 
 @app.route('/update/<int:id>', methods=['GET', 'POST'])
@@ -23,6 +25,8 @@ def update(id):
     if request.method == "POST":
         name_to_update.name = request.form['name']
         name_to_update.email = request.form['email']
+        name_to_update.favorite_color = request.form['favorite_color']
+        name_to_update.age = request.form['age']
         try:
             db.session.commit()
             flash("User updated successfuly ! ")
@@ -50,6 +54,8 @@ class Users(db.Model):
     name = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
     date_add2 = db.Column(db.DateTime, default=datetime.utcnow)
+    favorite_color = db.Column(db.String(120))
+    age = db.Column(db.String(200), nullable=False)
 
     # CREATE A STRING
     def __repr__(self):
@@ -59,6 +65,8 @@ class Users(db.Model):
 class UserForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired()])
+    favorite_color = StringField('Favorite Color')
+    age = StringField('Age')
     submit = SubmitField("Submit")
 
 
@@ -74,10 +82,11 @@ def add_user():
     form = UserForm()
     name = None
     if form.validate_on_submit():
-        user = Users(name=form.name.data, email=form.email.data)
+        user = Users(name=form.name.data, email=form.email.data, favorite_color=form.favorite_color.data,age=form.age.data)
         db.session.add(user)
         db.session.commit()
         flash("User added succseffuly")
+
     our_users = Users.query.order_by(Users.date_add2)
     return render_template('add_user.html', form=form, title=title, name=name, our_users=our_users)
 

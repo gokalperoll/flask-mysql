@@ -22,22 +22,39 @@
         <br>
         <form method="POST">
             {{ form.hidden_tag() }}
+
             {{ form.name.label(
             class="form-label") }}
+
             {{ form.name(
             class="form-control") }}
+
             <br>
             {{ form.email.label(
             class="form-label") }}
+
             {{ form.email (
             class="form-control") }}
+            <br>
+            {{ form.favorite_color.label(
+            class="form-label") }}
+
+            {{ form.favorite_color(
+            class="form-control") }}
+
+            {{ form.age.label(
+            class="form-label") }}
+
+            {{ form.age(
+            class="form-control") }}
+
             {{ form.submit(
             class="btn btn-primary") }}
         </form>
     <br><br><br>
 {% for our in our_users %}
     {{ our.id }} - <a href = "{{ url_for('update',id=our.id) }}">{{our.name}}</a>
-        - {{ our.email }}<br>
+        - {{ our.email }} - {{ our.favorite_color }} - {{ our.age }} <br>
 {% endfor %}
 {% endif %}
 
