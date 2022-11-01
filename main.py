@@ -1,10 +1,11 @@
 from flask import Flask, render_template, flash, request
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import DataRequired
+from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError
+from wtforms.validators import DataRequired, Length, EqualTo
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 # ADD SECRET KEY
@@ -56,6 +57,18 @@ class Users(db.Model):
     date_add2 = db.Column(db.DateTime, default=datetime.utcnow)
     favorite_color = db.Column(db.String(120))
     age = db.Column(db.String(200), nullable=False)
+    password_hash = db.Column(db.String(128))
+
+    @property
+    def password(self):
+        raise AttributeError('password is not a readable attribute !')
+
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def verify_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
     # CREATE A STRING
     def __repr__(self):
@@ -67,6 +80,9 @@ class UserForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
     favorite_color = StringField('Favorite Color')
     age = StringField('Age')
+    password_hash = PasswordField('Password ', validators=[DataRequired(),
+                                                           EqualTo('password_hash2', message="Passwords must match !")])
+    password_hash2 = PasswordField('Confirm Password', validators=[DataRequired()])
     submit = SubmitField("Submit")
 
 
@@ -82,27 +98,33 @@ def add_user():
     form = UserForm()
     name = None
     if form.validate_on_submit():
-        user = Users(name=form.name.data, email=form.email.data, favorite_color=form.favorite_color.data,age=form.age.data)
+        hashed_pw = generate_password_hash(form.password_hash.data, "sha256")
+        user = Users(name=form.name.data, email=form.email.data, favorite_color=form.favorite_color.data,
+                     age=form.age.data,
+                     password_hash=hashed_pw)
         db.session.add(user)
         db.session.commit()
-        flash("User added succseffuly")
+        flash("User added successfully")
 
     our_users = Users.query.order_by(Users.date_add2)
     return render_template('add_user.html', form=form, title=title, name=name, our_users=our_users)
 
 
-@app.route('/user/delete', methods=['GET', 'POST'])
-def delete_user():
-    title = "Delete User"
-    form = UserForm()
+@app.route('/delete/<int:id>')
+def delete_user(id):
+    user_delete = Users.query.get_or_404(id)
     name = None
-    if form.validate_on_submit():
-        user = Users.query.filter_by(name=form.name.data).first()
-        db.session.delete(user)
+    form = UserForm()
+    try:
+        db.session.delete(user_delete)
         db.session.commit()
-        flash("User delete succseffuly")
-    our_users = Users.query.order_by()
-    return render_template('delete_user.html', form=form, title=title, our_users=our_users)
+        flash("User deleted successfully")
+        our_users = Users.query.order_by(Users.date_add2)
+        return render_template('add_user.html', form=form, name=name, our_users=our_users)
+    except:
+
+        flash("Whoops  try again now !!")
+        return render_template('add_user.html', form=form, name=name, our_users=our_users)
 
 
 if __name__ == '__main__':
